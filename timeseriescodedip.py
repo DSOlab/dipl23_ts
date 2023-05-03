@@ -23,14 +23,16 @@ def linear_model(START_DATE, END_DATE, T0, A, B):
 
     ## Creating year-day numbers and calculating the linear model
     while START_DATE <= END_DATE and j < 10000:
-        rand_numb = numpy.random.normal(mean, std, size=num_samples)
+#        rand_numb = numpy.random.normal(mean, std, size=num_samples)##REMOVE SIZE on list
+        rand_numb = numpy.random.normal(mean, std)
 
         epochs = START_DATE.year + START_DATE.timetuple().tm_yday / 365.25
         linear_y = (epochs - T0) * A + B
         w_noise = rand_numb + linear_y
 
         white_noise.append(w_noise)
-        dates.append(epochs)
+        #dates.append(epochs) ### Append to START_DATE
+        dates.append(START_DATE)
         linear_model.append(linear_y)
 
         START_DATE += datetime.timedelta(days = 1)
@@ -42,11 +44,12 @@ dates, white_noise, model = linear_model(START_DATE, END_DATE, T0, A, B)
 ## Creating a text file, and writing dates + white noise in it
 
 with open("Linear_Model.txt", "w") as file:
-    file.write("dates \t \t \t    linear_y \n")                 ##Needs to be fixed 
+#    file.write("dates \t \t \t    linear_y \n")                 ##Needs to be fixed 
+    print('{:20s} {:20s}'.format('#dates', 'linear_y'), file=file)
 
     for i in range(len(dates)):
-        file.write(str(dates[i]) + "\t" + str(white_noise[i]) + "\n")
-
+#        file.write(str(dates[i]) + "\t" + str(white_noise[i]) + "\n")
+        print('{:} {:+.20e}'.format(datetime.datetime.strftime(dates[i],"%Y-%m-%dT%H:%M:%S"), white_noise[i]),file=file)
 ## Plotting linear model 
 
 plt.plot(dates, model, label = 'Linear Model')
