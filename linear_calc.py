@@ -1,4 +1,7 @@
 import datetime
+import numpy as np
+import math
+
 PATH = 'Linear_Model.txt'
 
 ## Parse a text file
@@ -26,10 +29,10 @@ def dates2epochs(dates):
 ## Calculating the middle epoch and returns a list of time differences between each epoch and the middle epoch 
 def epochs2dtime(epochs):
     dtime=[]
-    t0=(epochs[-1]+epochs[0])/2     #Calculating middle epoch
-    print('t0 = ', t0)
+    middle_epoch=(epochs[-1]+epochs[0])/2     #Calculating middle epoch
+    print('t0 = ', middle_epoch)
     for epoch in epochs:
-        dtime.append(epoch-t0)      #Calculating and appending the differences
+        dtime.append(epoch - middle_epoch)      #Calculating and appending the differences
     return dtime
 
 ## Implementing the basic formula for Linear Regression using the least squares method to fit a straight line to a set of data points
@@ -48,8 +51,28 @@ def Linear_Regression(dates, y):
     b = ((sy*xx) - (sx*xy))/(n*xx - sx*sx)
     return a, b
 
+def Harmonic_Regression(dates):
+    dx = []
+    A = []
+
+    # y = c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates)
+    w1 = 2 * math.pi * 2
+    w2 = 2 * math.pi * 1
+
+    A = [] 
+    for i in range (len(dates)):
+        A.append(math.sin(w1*dates[i]))
+        A.append(math.cos(w1*dates[i]))
+        A.append(math.sin(w2*dates[i]))
+        A.append(math.cos(w2*dates[i]))
+
+    A = np.array(A)
+    A = np.reshape(A,(len(dates),4))
+    print(A)
+    return(A)
+
 dates, y = parse_txt(PATH)
 dates = epochs2dtime(dates2epochs(dates)) #Datetime -> Epochs -> dtime
+A = Harmonic_Regression(dates)
 a, b = Linear_Regression(dates, y)
-print(dates)
-print(b)
+print(len(dates))
