@@ -26,7 +26,7 @@ def dates2epochs(dates):
         epochs.append(date.year + date.timetuple().tm_yday / 365.25)
     return epochs
 
-## Calculating the middle epoch and returns a list of time differences between each epoch and the middle epoch 
+## Calculating the middle epoch and return a list of time differences between each epoch and the middle epoch 
 def epochs2dtime(epochs):
     dtime=[]
     middle_epoch=(epochs[-1]+epochs[0])/2     #Calculating middle epoch
@@ -49,30 +49,31 @@ def Linear_Regression(dates, y):
 
     a = (n*xy - sx*sy)/(n*xx - sx*sx)
     b = ((sy*xx) - (sx*xy))/(n*xx - sx*sx)
+
     return a, b
 
 def Harmonic_Regression(dates):
-    dx = []
-    A = []
-
+    # A = np.ones(shape=(len(dates),4))
+    # dx = np.ones(shape=(1,4))
     # y = c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates)
-    w1 = 2 * math.pi * 2
-    w2 = 2 * math.pi * 1
+    omega1 = 2 * math.pi * 2
+    omega2 = 2 * math.pi * 1
 
-    A = [] 
+    A = []
+    dx = []
+
     for i in range (len(dates)):
-        A.append(math.sin(w1*dates[i]))
-        A.append(math.cos(w1*dates[i]))
-        A.append(math.sin(w2*dates[i]))
-        A.append(math.cos(w2*dates[i]))
+        A.append(math.sin(omega1*dates[i]))
+        A.append(math.cos(omega1*dates[i]))
+        A.append(math.sin(omega2*dates[i]))
+        A.append(math.cos(omega2*dates[i]))
 
     A = np.array(A)
     A = np.reshape(A,(len(dates),4))
-    print(A)
+    A.shape
     return(A)
 
 dates, y = parse_txt(PATH)
 dates = epochs2dtime(dates2epochs(dates)) #Datetime -> Epochs -> dtime
 A = Harmonic_Regression(dates)
 a, b = Linear_Regression(dates, y)
-print(len(dates))
