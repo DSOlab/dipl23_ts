@@ -87,7 +87,7 @@ for i in range (len(lin_model)):
     model.append(lin_model[i] + sin_model[i] + white_noise[i])
     
 
-plt.plot(dates, model, label = 'Linear Model')
+plt.plot(dates, model, label = 'Model')
 # plt.plot(dates, w_noise, label = 'White noise')
 
 font = {'family':'serif','color':'blue','size':30}
