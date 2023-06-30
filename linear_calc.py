@@ -70,10 +70,13 @@ def Harmonic_Regression(dates):
 
     A = np.array(A)
     A = np.reshape(A,(len(dates),4))
-    A.shape
-    return(A)
+    print(A.shape)
+    return A
 
 dates, y = parse_txt(PATH)
-dates = epochs2dtime(dates2epochs(dates)) #Datetime -> Epochs -> dtime
-A = Harmonic_Regression(dates)
-a, b = Linear_Regression(dates, y)
+#dates = epochs2dtime(dates2epochs(dates)) #Datetime -> Epochs -> dtime
+A = Harmonic_Regression(epochs2dtime(dates2epochs(dates)))
+#a, b = Linear_Regression(dates, y)
+
+## for least squares:
+## https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html
