@@ -10,6 +10,16 @@ end_str = input("Enter a Finishing Date using (Year-Month-Day) - format: ")
 START_DATE = datetime.datetime.strptime(start_str, "%Y-%m-%d").date()
 END_DATE = datetime.datetime.strptime(end_str, "%Y-%m-%d").date()
 
+# Offest timeframe + offset number
+Offset_str = input("Enter the offset date using (Year-Month-Day) - format: ")
+OFFSET_DATE = datetime.datetime.strptime(Offset_str, "%Y-%m-%d").date()
+Offset_h_str = input("Enter the offset height in mm: ")
+OFFSET_H = float(Offset_h_str)
+
+
+# START_DATE = datetime.date(2015,1,1)
+# END_DATE = datetime.date(2019,1,1)
+
 
 A = 40 # mm/year
 B = 0 
@@ -78,17 +88,41 @@ def harmonic_model(START_DATE, END_DATE, mid_epoch, C, D):
         START_DATE += datetime.timedelta(days = 1)
     return(sin_model)
 
+# Given the dates and the offset number, create a list that contains the offset values
+# def jumps(dates):
+#     OS = []
+#     for date in dates:
+#         if date <= datetime.date(2016,1,1):
+#             OS.append(0)
+#         elif date <= datetime.date(2017,1,1):
+#             OS.append(50)
+#         else:
+#             OS.append(-120)
+#     return OS
+
+def jumps_import(dates, OFFSET_DATE, OFFSET_H):
+    OS = []
+    for date in dates:
+        if date <= OFFSET_DATE:
+            OS.append(0)
+        else:
+            OS.append(OFFSET_H)
+    return OS
+
+
 linear_model = linear_model(START_DATE, END_DATE, mid_epoch, A, B)
 harmonic_model = harmonic_model(START_DATE, END_DATE, mid_epoch, C, D)
 white_noise = white_noise_calc(START_DATE, END_DATE, mean, std)
 dates = date_calc(START_DATE, END_DATE)
+# offset = jumps(dates)
+offset = jumps_import(dates, OFFSET_DATE, OFFSET_H)
 
-## Ploting the model: Linear model + harmonic model (frequency = 1 year || frequency = 0.5 years)
+## Ploting the model: Linear model + harmonic model (frequency = 1 year || frequency = 0.5 years) + offset
 
 model = []
 
 for i in range (len(linear_model)):
-    model.append(linear_model[i] + harmonic_model[i] + white_noise[i])
+    model.append(linear_model[i] + harmonic_model[i] + white_noise[i] + offset[i])
 
 ## Creating a text file containing dates + y values
 
