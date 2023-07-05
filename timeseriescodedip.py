@@ -3,23 +3,35 @@ from matplotlib import pyplot as plt
 import numpy
 import math
 
-# Enter a Starting and a Finishing date from keyboard
-start_str = input("Enter a Starting Date using (Year-Month-Day) - format: ")
-end_str = input("Enter a Finishing Date using (Year-Month-Day) - format: ")
+# # Enter a Starting and a Finishing date from keyboard
+# start_str = input("Enter a Starting Date using (Year-Month-Day) - format: ")
+# end_str = input("Enter a Finishing Date using (Year-Month-Day) - format: ")
 
-START_DATE = datetime.datetime.strptime(start_str, "%Y-%m-%d").date()
-END_DATE = datetime.datetime.strptime(end_str, "%Y-%m-%d").date()
+# START_DATE = datetime.datetime.strptime(start_str, "%Y-%m-%d").date()
+# END_DATE = datetime.datetime.strptime(end_str, "%Y-%m-%d").date()
 
-# Offest timeframe + offset number
-Offset_str = input("Enter the offset date using (Year-Month-Day) - format: ")
-OFFSET_DATE = datetime.datetime.strptime(Offset_str, "%Y-%m-%d").date()
-Offset_h_str = input("Enter the offset height in mm: ")
-OFFSET_H = float(Offset_h_str)
+# Offset timeframe + offset number
+jump_list = []
+while True:
+    Offset_str = input("Enter the offset date using (Year-Month-Day) format, enter 'q' to quit: ")
 
+    if Offset_str == 'q':
+        break
+    
+    OFFSET_DATE = datetime.datetime.strptime(Offset_str, "%Y-%m-%d").date()
 
-# START_DATE = datetime.date(2015,1,1)
-# END_DATE = datetime.date(2019,1,1)
+    Offset_h_str = input("Enter the offset height in mm: ")
+    OFFSET_H = float(Offset_h_str)
 
+    jump_list.append((OFFSET_DATE, OFFSET_H))
+
+START_DATE = datetime.date(2015,1,1)
+END_DATE = datetime.date(2019,1,1)
+
+# START_OFFSET = datetime.date(2016,1,1)
+# START_H = 60
+# END_OFFSET = datetime.date(2017,1,1)
+# END_H = 0
 
 A = 40 # mm/year
 B = 0 
@@ -100,13 +112,15 @@ def harmonic_model(START_DATE, END_DATE, mid_epoch, C, D):
 #             OS.append(-120)
 #     return OS
 
-def jumps_import(dates, OFFSET_DATE, OFFSET_H):
+def jumps_import(dates, jump_list):
     OS = []
-    for date in dates:
-        if date <= OFFSET_DATE:
+    for d in dates:
+        if d <= jump_list[0][0]:
             OS.append(0)
+        elif d <= jump_list[1][0]:
+            OS.append(jump_list[0][1])
         else:
-            OS.append(OFFSET_H)
+            OS.append(jump_list[1][1])
     return OS
 
 
@@ -115,7 +129,7 @@ harmonic_model = harmonic_model(START_DATE, END_DATE, mid_epoch, C, D)
 white_noise = white_noise_calc(START_DATE, END_DATE, mean, std)
 dates = date_calc(START_DATE, END_DATE)
 # offset = jumps(dates)
-offset = jumps_import(dates, OFFSET_DATE, OFFSET_H)
+offset = jumps_import(dates, jump_list)
 
 ## Ploting the model: Linear model + harmonic model (frequency = 1 year || frequency = 0.5 years) + offset
 
