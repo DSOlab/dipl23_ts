@@ -23,7 +23,7 @@ while True:
     Offset_h_str = input("Enter the offset height in mm: ")
     OFFSET_H = float(Offset_h_str)
 
-    jump_list.append((OFFSET_DATE, OFFSET_H))
+    jump_list.append([OFFSET_DATE, OFFSET_H])
 
 START_DATE = datetime.date(2015,1,1)
 END_DATE = datetime.date(2019,1,1)
@@ -100,27 +100,15 @@ def harmonic_model(START_DATE, END_DATE, mid_epoch, C, D):
         START_DATE += datetime.timedelta(days = 1)
     return(sin_model)
 
-# Given the dates and the offset number, create a list that contains the offset values
-# def jumps(dates):
-#     OS = []
-#     for date in dates:
-#         if date <= datetime.date(2016,1,1):
-#             OS.append(0)
-#         elif date <= datetime.date(2017,1,1):
-#             OS.append(50)
-#         else:
-#             OS.append(-120)
-#     return OS
-
+ 
 def jumps_import(dates, jump_list):
     OS = []
     for d in dates:
-        if d <= jump_list[0][0]:
-            OS.append(0)
-        elif d <= jump_list[1][0]:
-            OS.append(jump_list[0][1])
-        else:
-            OS.append(jump_list[1][1])
+        OS_value = 0
+        for jump_t, jump_val in jump_list:
+            if d >= jump_t:
+                OS_value += jump_val
+        OS.append(OS_value)
     return OS
 
 
@@ -128,7 +116,6 @@ linear_model = linear_model(START_DATE, END_DATE, mid_epoch, A, B)
 harmonic_model = harmonic_model(START_DATE, END_DATE, mid_epoch, C, D)
 white_noise = white_noise_calc(START_DATE, END_DATE, mean, std)
 dates = date_calc(START_DATE, END_DATE)
-# offset = jumps(dates)
 offset = jumps_import(dates, jump_list)
 
 ## Ploting the model: Linear model + harmonic model (frequency = 1 year || frequency = 0.5 years) + offset

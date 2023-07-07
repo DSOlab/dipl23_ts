@@ -6,6 +6,38 @@ import math
 PATH = 'Linear_Model.txt'
 OMEGA1 = 2 * math.pi * 2
 OMEGA2 = 2 * math.pi * 1
+omega_list = [OMEGA1, OMEGA2]
+START_OFFSET = datetime.date(2016,1,1)
+START_H = 50
+END_OFFSET = datetime.date(2017,1,1)
+END_H = -100
+jump_list = [[START_OFFSET, START_H], [END_OFFSET, END_H]]
+##--------------------------------INPUTS--------------------------------------------##
+# PATH = input('Enter the name of the text file: ')
+# Offset timeframe + offset number
+# jump_list = []
+# while True:
+#     Offset_str = input("Enter the offset date using (Year-Month-Day) format, enter 'q' to quit: ")
+
+#     if Offset_str == 'q':
+#         break
+    
+#     OFFSET_DATE = datetime.datetime.strptime(Offset_str, "%Y-%m-%d").date()
+
+#     Offset_h_str = input("Enter the offset height in mm: ")
+#     OFFSET_H = float(Offset_h_str)
+
+#     jump_list.append([OFFSET_DATE, OFFSET_H])
+# # OMEGA list
+# omega_list = []
+# while True:
+#     w = input("Enter the the angular frequency of the harmonic signal, enter 'q' to quit: ")
+
+#     if w == 'q':
+#         break
+
+#     omega = float(w)
+#     omega_list.append(omega)
 
 ## Parse a text file
 ## Process the data to convert the dates to the number of year using the mean (t0) as the center
@@ -33,7 +65,7 @@ def dates2epochs(dates):
 def epochs2dtime(epochs):
     dtime=[]
     middle_epoch=(epochs[-1]+epochs[0])/2     #Calculating middle epoch
-    print('t0 = ', middle_epoch)
+    # print('t0 = ', middle_epoch)
     for epoch in epochs:
         dtime.append(epoch - middle_epoch)      #Calculating and appending the differences
     return dtime
@@ -55,24 +87,21 @@ def Linear_Regression(dates, y):
 
     return a, b
 
-## Generating a design matrix based on the given time differences (each time instance (epoch) - the middle epoch), and 2 given angular differences (omega1,2):
+## Generating a design matrix based on the given time differences (each time instance (epoch) - the middle epoch), and 2 or more given angular frequencies (omega1,2):
 ## The resulting design matrix named "A" has dimensions "(len(dates), number of coefficients(6))"
-## The equation being modeled is: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates)
-def Design_Matrix(dates, OMEGA1, OMEGA2):
+## The equation being modeled is: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates)...
+def Design_Matrix(dates, jump_list, omega_list):
     A = []
+    m = 2 + len(omega_list) * 2 + len(jump_list)                                #Number of parameters 
     for i in range (len(dates)):
-        dm_row = [                          #Creating a row containing the values of the independent variables for each date
-            dates[i],
-            1,
-            math.sin(OMEGA1 * dates[i]),
-            math.cos(OMEGA1 * dates[i]),
-            math.sin(OMEGA2 * dates[i]),
-            math.cos(OMEGA2 * dates[i])
-        ]
-        A.append(dm_row)                    #Append the constructed row to the Design Matrix (list named "A")
+        A_row = []                                                              #Creating a row containing the values of the independent variables for each date
+        A_row += [dates[i], 1]                                                  #Adding the linear terms
+        for omega in omega_list:
+            A_row += [math.sin(omega * dates[i]), math.cos(omega * dates[i])]   #Adding as many harmonic terms as in the omega list
+        A_row += [1 for _ in jump_list]
+        assert(len(A_row) == m)
+        A.append(A_row)                                                         #Append the constructed row to the Design Matrix (list named "A")
     A = np.array(A)
-    print(A)
-
     return A
 
 ## Solving a linear regression problem using the least square method
@@ -84,19 +113,26 @@ def Least_Squares(A, y):
     dx = np.linalg.lstsq(A, y, rcond=None)[0]
     return dx
 
-## Given the least square solutions for the equation: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates)
+## Given the least square solutions for an equation: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates) + ... + j1 + ...jν
 ## For each date, calculate the corresponding solution creating the final model 
-def LS_solutions(dx, dates, OMEGA1, OMEGA2):
+def LS_solutions(dx, dates, omega_list, jump_list):
 
     dx = list(dx)
     solutions = []
-
     for i in range (len(dates)):
-        solution = dx[0]*dates[i] + dx[1] + dx[2]*math.sin(OMEGA1*dates[i]) + dx[3]*math.cos(OMEGA1*dates[i]) + dx[4]*math.sin(OMEGA2*dates[i]) + dx[5]*math.cos(OMEGA2*dates[i])
+        lin_sol = dx[0]*dates[i] + dx[1]
+        harmonic = 0
+        for j in range(len(omega_list)):
+            harmonic += dx[2+j] * math.sin(omega_list[j] * dates[i]) + dx[3+j] * math.cos(omega_list[j] * dates[i])
+        jumps = 0
+        for k in range(len(jump_list)):
+            jumps += dx[2 + len(omega_list) * 2 + k]
+        solution = lin_sol + harmonic + jumps
         solutions.append(solution)
     # print(solutions)
 
     return solutions
+
 ## Calculating the linear model
 def Linear_sol(a, b, dates):
     lin_sol = []
@@ -106,12 +142,13 @@ def Linear_sol(a, b, dates):
 
 if __name__ == "__main__":
     dates, y = parse_txt(PATH)
-    A = Design_Matrix(epochs2dtime(dates2epochs(dates)), OMEGA1, OMEGA2) #Datetime -> Epochs -> dtime
-    Final_Model = LS_solutions(Least_Squares(A, y), epochs2dtime(dates2epochs(dates)), OMEGA1, OMEGA2) 
+    A = Design_Matrix(epochs2dtime(dates2epochs(dates)), jump_list, omega_list) #Datetime -> Epochs -> dtime
+    dx = Least_Squares(A, y)
+    Final_Model = LS_solutions(Least_Squares(A, y), epochs2dtime(dates2epochs(dates)), omega_list, jump_list) 
     a, b = Linear_Regression(epochs2dtime(dates2epochs(dates)), y)
     Lin_Solution = Linear_sol(a, b, epochs2dtime(dates2epochs(dates)))
 
-## Plotting the original data imported from the text file (created by timeseriescodedip.py) + the created model
+# Plotting the original data imported from the text file (created by timeseriescodedip.py) + the created model
 
     plt.plot(dates, y, 'o', label = 'Original Data', markersize=1)
     plt.plot(dates, Final_Model, 'r', label = "Final Model")
