@@ -5,7 +5,7 @@ import math
 
 model_coef = [40, 0, -3, -11, -3, -11] #Coefficients of the equation being modeled y = a * x + b + c1 * math.sin(w1 * x) + d1 * math.cos(w1 * x) + c2 * math.sin(w2 * x) + d2 * math.cos(w2 * x)...
 timeframe = [datetime.datetime(2015,1,1), datetime.datetime(2019,1,1)]
-jump_list = [[datetime.datetime(2016,1,1), 60], [datetime.datetime(2017,1,1), 0]]
+jump_list = [[datetime.datetime(2016,1,1), 60], [datetime.datetime(2017,1,1), -100]]
 w = 2 * math.pi * 2 
 w2 = 2 * math.pi * 1 
 angular_freq = [w, w2]
@@ -72,14 +72,14 @@ def linear(dt, model_coef):
 # and its angular frequency (omega), calculate the value of the harmonic signal
 # at a given epoch (t) using: y = A * sin(omega * t) + B * cos(omega * t)
 # Note: the following function calculates 2 signals, for 2 different frequencies
-def harmonic(dt, angular_freq, model_coef):
-    harmonic_model = []
-    for x in dt:
-        harmonic = model_coef[2] * math.sin(angular_freq[0] * x) + model_coef[3] * math.cos(angular_freq[0] * x)
-        harmonic2 = model_coef[4] * math.sin(angular_freq[1] * x) + model_coef[5] * math.cos(angular_freq[1] * x)
-        harmonic_tot = harmonic + harmonic2
-        harmonic_model.append(harmonic_tot)
-    return(harmonic_model)
+#def harmonic(dt, angular_freq, model_coef):
+#    harmonic_model = []
+#    for x in dt:
+#        harmonic = model_coef[2] * math.sin(angular_freq[0] * x) + model_coef[3] * math.cos(angular_freq[0] * x)
+#        harmonic2 = model_coef[4] * math.sin(angular_freq[1] * x) + model_coef[5] * math.cos(angular_freq[1] * x)
+#        harmonic_tot = harmonic + harmonic2
+#        harmonic_model.append(harmonic_tot)
+#    return(harmonic_model)
 
 def jumps(dates, jump_list):
     offset = []
@@ -159,17 +159,12 @@ def lin_sol(dx, dt):
 
 def harm_sol(dx, angular_freq, dt):
     dx = list(dx)
-    n = len(angular_freq)
     harm = []
     for d in dt:
-        goaler = 0
-        gorew = 0
-        for j in range(n):
-            goaler += dx[j] * math.sin(angular_freq[j] * d)
-            gorew += dx[j+1] * math.sin(angular_freq[j] * d)
-        harm2 = goaler + gorew
+        harm2 = 0
+        for i, freq in enumerate(angular_freq):
+            harm2 += dx[i*2+2] * math.sin(freq * d) + dx[i*2+3] * math.cos(freq * d)
         harm.append(harm2)
-    
     return harm
 
 
@@ -177,12 +172,13 @@ t0 = middle_epoch(timeframe)
 dates = date_calc(timeframe)
 dt = epochs2dt(datetime2epochs(dates))
 linear_model = linear(dt, model_coef)
-harmonic_model = harmonic(dt, angular_freq, model_coef)
-offset = jumps(dates, jump_list)
-noise = white_noise(timeframe, white_noise_parameters)
-dx = Least_Squares(Design_Matrix(dates, dt, jump_list, angular_freq), model(linear(dt, model_coef), harmonic(dt, angular_freq, model_coef), jumps(dates, jump_list), white_noise(timeframe, white_noise_parameters)))
+#harmonic_model = harmonic(dt, angular_freq, model_coef)
+harmonic_model = harm_sol(model_coef, angular_freq, dt)
+#offset = jumps(dates, jump_list)
+#noise = white_noise(timeframe, white_noise_parameters)
+dx = Least_Squares(Design_Matrix(dates, dt, jump_list, angular_freq), model(linear(dt, model_coef), harm_sol(model_coef, angular_freq, dt), jumps(dates, jump_list), white_noise(timeframe, white_noise_parameters)))
 solution = LS_solutions(dx, dates, dt, angular_freq, jump_list)
-y = model(linear(dt, model_coef), harmonic(dt, angular_freq, model_coef), jumps(dates, jump_list), white_noise(timeframe, white_noise_parameters))
+y = model(linear(dt, model_coef), harm_sol(model_coef, angular_freq, dt), jumps(dates, jump_list), white_noise(timeframe, white_noise_parameters))
 
 lin_test = lin_sol(dx, dt)
 harm_test = harm_sol(dx, angular_freq, dt)

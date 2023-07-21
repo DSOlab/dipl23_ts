@@ -7,11 +7,13 @@ PATH = 'Linear_Model.txt'
 OMEGA1 = 2 * math.pi * 2
 OMEGA2 = 2 * math.pi * 1
 omega_list = [OMEGA1, OMEGA2]
-START_OFFSET = datetime.date(2016,1,1)
+#omega_list=[]
+START_OFFSET = datetime.datetime(2016,1,1)
 START_H = 50
-END_OFFSET = datetime.date(2017,1,1)
+END_OFFSET = datetime.datetime(2018,2,20)
 END_H = -100
 jump_list = [[START_OFFSET, START_H], [END_OFFSET, END_H]]
+#jump_list=[]
 ##--------------------------------INPUTS--------------------------------------------##
 # PATH = input('Enter the name of the text file: ')
 # Offset timeframe + offset number
@@ -93,12 +95,18 @@ def Linear_Regression(dates, y):
 def Design_Matrix(dates, jump_list, omega_list):
     A = []
     m = 2 + len(omega_list) * 2 + len(jump_list)                                #Number of parameters 
-    for i in range (len(dates)):
+    frdates = epochs2dtime(dates2epochs(dates))
+    for d in zip(dates, frdates):
         A_row = []                                                              #Creating a row containing the values of the independent variables for each date
-        A_row += [dates[i], 1]                                                  #Adding the linear terms
+        A_row += [d[1], 1]                                                  #Adding the linear terms
         for omega in omega_list:
-            A_row += [math.sin(omega * dates[i]), math.cos(omega * dates[i])]   #Adding as many harmonic terms as in the omega list
-        A_row += [1 for _ in jump_list]
+            A_row += [math.sin(omega * d[1]), math.cos(omega * d[1])]   #Adding as many harmonic terms as in the omega list
+        for jump in jump_list:
+            if d[0] >= jump[0]:
+                A_row += [1]
+            else:
+                A_row += [0]
+        #A_row += [1 for _ in jump_list]
         assert(len(A_row) == m)
         A.append(A_row)                                                         #Append the constructed row to the Design Matrix (list named "A")
     A = np.array(A)
@@ -116,17 +124,21 @@ def Least_Squares(A, y):
 ## Given the least square solutions for an equation: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates) + ... + j1 + ...jν
 ## For each date, calculate the corresponding solution creating the final model 
 def LS_solutions(dx, dates, omega_list, jump_list):
-
+    frdates = epochs2dtime(dates2epochs(dates))
     dx = list(dx)
-    solutions = []
-    for i in range (len(dates)):
-        lin_sol = dx[0]*dates[i] + dx[1]
-        harmonic = 0
+    solutions = []   
+    
+    for d in zip(dates, frdates):
+        lin_sol = dx[0]*d[1] + dx[1]
+        harmonic = 0.0
+        offset = 2
         for j in range(len(omega_list)):
-            harmonic += dx[2+j] * math.sin(omega_list[j] * dates[i]) + dx[3+j] * math.cos(omega_list[j] * dates[i])
-        jumps = 0
-        for k in range(len(jump_list)):
-            jumps += dx[2 + len(omega_list) * 2 + k]
+            harmonic += dx[offset+j] * math.sin(omega_list[j] * d[1]) + dx[offset+1+j] * math.cos(omega_list[j] * d[1])
+        jumps = 0.0
+        offset = offset + len(omega_list)*2
+        for j in range(len(jump_list)):
+            if d[0] >= jump_list[j][0]:
+                jumps += dx[offset + j]
         solution = lin_sol + harmonic + jumps
         solutions.append(solution)
     # print(solutions)
@@ -142,17 +154,18 @@ def Linear_sol(a, b, dates):
 
 if __name__ == "__main__":
     dates, y = parse_txt(PATH)
-    A = Design_Matrix(epochs2dtime(dates2epochs(dates)), jump_list, omega_list) #Datetime -> Epochs -> dtime
+    ##A = Design_Matrix(epochs2dtime(dates2epochs(dates)), jump_list, omega_list) #Datetime -> Epochs -> dtime
+    A = Design_Matrix(dates, jump_list, omega_list) #Datetime -> Epochs -> dtime
     dx = Least_Squares(A, y)
-    Final_Model = LS_solutions(Least_Squares(A, y), epochs2dtime(dates2epochs(dates)), omega_list, jump_list) 
-    a, b = Linear_Regression(epochs2dtime(dates2epochs(dates)), y)
-    Lin_Solution = Linear_sol(a, b, epochs2dtime(dates2epochs(dates)))
-
+    Final_Model = LS_solutions(Least_Squares(A, y), dates, omega_list, jump_list) 
+#    a, b = Linear_Regression(epochs2dtime(dates2epochs(dates)), y)
+#    Lin_Solution = Linear_sol(a, b, epochs2dtime(dates2epochs(dates)))
+    print(dx)
 # Plotting the original data imported from the text file (created by timeseriescodedip.py) + the created model
 
     plt.plot(dates, y, 'o', label = 'Original Data', markersize=1)
     plt.plot(dates, Final_Model, 'r', label = "Final Model")
-    plt.plot(dates, Lin_Solution, 'y', label = "Linear Model")
+ #   plt.plot(dates, Lin_Solution, 'y', label = "Linear Model")
 
     font = {'family':'serif','color':'blue','size':30}
     font1 = {'family':'serif','color':'darkred','size':20}
