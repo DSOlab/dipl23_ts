@@ -130,3 +130,7 @@ dmypy.json
 
 # ignore testing files
 example.txt
+
+# ignore cts files
+*.cts
+*.dcts
