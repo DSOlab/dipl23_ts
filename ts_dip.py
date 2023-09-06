@@ -13,7 +13,7 @@ w = 2 * math.pi * 2
 w2 = 2 * math.pi * 1 
 angular_freq = [w2, w]
 white_noise_parameters = [0, 1]
-SIGMA0 = 1
+SIGMA0 = 0.001
 EPSILON = 0.006694380 
 PATH = 'tuc2.cts'
 
@@ -142,8 +142,9 @@ def fractionaldt(t,t0=None):
 def weights_calc(coord_errors, sigma0):
     weights = [(1 / ce ) * sigma0 for ce in coord_errors]
     weights_array = np.array(weights)
-    P_matrix = np.diag(weights_array)
-    return P_matrix
+    #P_matrix = np.diag(weights_array)
+    #print(P_matrix)
+    return weights_array #P_matrix
 
 ## Given the least square solutions for an equation: y = a*dates + b + c1*math.sin(w1*dates) + d1*math.cos(w1*dates) + c2*math.sin(w2*dates) + d2*math.cos(w2*dates) + ... + j1 + ...jν
 ## For each date, calculate the corresponding solution creating the final model 
@@ -197,14 +198,17 @@ def Design_Matrix(t, jump_list, angular_freq):
 
 ## Solving a linear regression problem using the least square method
 ## Converting the "y" input list to a NumPy array and reshape it into a column vector ensuring that "y" is in the correct format for further computations
-def fit(y, t, P_matrix, freq, jumps, SIGMA0): ## t = dates in datetime, y = parsed solutions, freq = given angular frequencies, jumps = list of datetime objects (time instance when the jump happened)
-    model = np.reshape(y, (len(y),1))
+def fit(y, t, P_array , freq, jumps, SIGMA0): ## t = dates in datetime, y = parsed solutions, freq = given angular frequencies, jumps = list of datetime objects (time instance when the jump happened)
+    #P_array =  np.ones(len(y))
+    #model = np.reshape(y, (len(y),1))
+    model = y * np.sqrt(P_array)
     A = Design_Matrix(t, jumps, freq)
-    AP = P_matrix@A
-    dx = np.linalg.lstsq(AP, model, rcond=None)[0].flatten()
+    AP = A * np.sqrt(P_array)[:, None]
+    dx, sumres, _,  _ = np.linalg.lstsq(AP, model, rcond=None)
+    dx = dx.flatten()
     AT = np.transpose(AP)
     cov_matrix = np.linalg.inv(AT@AP)*SIGMA0**2
-    return dx, cov_matrix
+    return dx, cov_matrix, sumres/(len(y)-1)
 
 def residuals(y, y_predicted):
     residuals = [actual - pred for actual, pred in zip(y, y_predicted)]
@@ -213,17 +217,17 @@ def residuals(y, y_predicted):
     mse = sum_sq_res / (len(y) - 1) ##mean square error
     return residuals, mse
 
-def remove_outliers(y, t, P, residuals, sigmap , SIGMA0):
+def remove_outliers(y, t, P_array, residuals, sigmap , SIGMA0):
     limit3s = 3 * sigmap 
     yy, tt, pp = [], [], []
     for i, res in enumerate(residuals):
         if abs(res) < limit3s:
             tt.append(t[i])
             yy.append(y[i])
-            pp.append(P[i][i])
-    P = np.array(pp)
-    P_matrix = np.diag(P)
-    return yy, tt, P_matrix
+            pp.append(P_array[i])
+    #P = np.array(pp)
+    #P_matrix = np.diag(P)
+    return yy, tt, np.array(pp)
 
 if __name__ == "__main__":
     dates = date_calc(timeframe)
@@ -235,7 +239,7 @@ if __name__ == "__main__":
     na = n    
     ta = t
 
-    P_f = weights_calc(sof, SIGMA0)
+    P_array = weights_calc(sof, SIGMA0)
 
     # # Validation Tests - Done
     # #y_arx = compute_model(model_coef, dates, angular_freq, jump_list, white_noise_parameters)
@@ -247,16 +251,15 @@ if __name__ == "__main__":
     while abs(mse - mset) > 1.0e-6 and j < 10:
         if j!=0:
             mset = mse
-        dx, vx = fit(n, t, P_f, angular_freq, jump_list, SIGMA0)
+        dx, vx, mse = fit(n, t, P_array, angular_freq, jump_list, SIGMA0)
         y_tel = compute_model(dx, t, angular_freq, jump_list)
-        uu, mse = residuals(n, y_tel)
+        uu, _ = residuals(n, y_tel)
         tres = t
-        n, t, P_f = remove_outliers(n, t, P_f, uu, math.sqrt(mse), SIGMA0)
-        print(P_f.shape)
-        #SIGMA0=math.sqrt(mse)
+        n, t, P_array = remove_outliers(n, t, P_array, uu, math.sqrt(mse), SIGMA0)
+        #print(P_array.shape)
+        SIGMA0=math.sqrt(mse)
         j+=1
-
-    print(j)
+    #print(j)
     plt.plot(ta, na, 'o', label = "East_Topo_Data", markersize=1.5)
     plt.plot(t, n, 'o', label = "East_Topo_Data", markersize=1.5)
 
@@ -295,7 +298,6 @@ if __name__ == "__main__":
     # ax2.set_ylabel("Up (m)", fontdict = font2)
 
     # plt.show()
-
 
 
     for i,x in enumerate(dx):
