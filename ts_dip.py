@@ -203,6 +203,7 @@ def fit(y, t, P_array , freq, jumps, SIGMA0): ## t = dates in datetime, y = pars
     #model = np.reshape(y, (len(y),1))
     model = y * np.sqrt(P_array)
     A = Design_Matrix(t, jumps, freq)
+    print(A.shape)
     AP = A * np.sqrt(P_array)[:, None]
     dx, sumres, _,  _ = np.linalg.lstsq(AP, model, rcond=None)
     dx = dx.flatten()
@@ -236,13 +237,13 @@ if __name__ == "__main__":
     x, y, z = getxyz(coords)
     sof, sol, soh = geterrors(coords)
     e, n, u = topocentric_conversion(x, y, z)
-    na = n    
-    ta = t
+    na = n
+    ea = e    
+    ta, tn, te, th = t, t, t, t
 
-    P_array = weights_calc(sof, SIGMA0)
-
-    # # Validation Tests - Done
-    # #y_arx = compute_model(model_coef, dates, angular_freq, jump_list, white_noise_parameters)
+    PN_array = weights_calc(sof, SIGMA0)
+    PE_array = weights_calc(sol, SIGMA0)
+    PU_array = weights_calc(soh, SIGMA0)
 
     # Timeseries analysis of X - North axis:
     j = 0
@@ -251,54 +252,108 @@ if __name__ == "__main__":
     while abs(mse - mset) > 1.0e-6 and j < 10:
         if j!=0:
             mset = mse
-        dx, vx, mse = fit(n, t, P_array, angular_freq, jump_list, SIGMA0)
-        y_tel = compute_model(dx, t, angular_freq, jump_list)
-        uu, _ = residuals(n, y_tel)
-        tres = t
-        n, t, P_array = remove_outliers(n, t, P_array, uu, math.sqrt(mse), SIGMA0)
-        #print(P_array.shape)
+        dx, vx, mse = fit(n, tn, PN_array, angular_freq, jump_list, SIGMA0)
+        y_tel = compute_model(dx, tn, angular_freq, jump_list)
+        uun, _ = residuals(n, y_tel)
+        tres = tn
+        n, tn, PN_array = remove_outliers(n, tn, PN_array, uun, math.sqrt(mse), SIGMA0)
+        #print(PN_array.shape)
         SIGMA0=math.sqrt(mse)
         j+=1
-    #print(j)
-    plt.plot(ta, na, 'o', label = "East_Topo_Data", markersize=1.5)
-    plt.plot(t, n, 'o', label = "East_Topo_Data", markersize=1.5)
-
-    # plt.plot(tres, uu, 'o', label = "East_Topo_Data", markersize=1.5)
-    
-    # plt.plot(t, filtered_y, label = "Linear Regression")
-
-    font = {'family':'serif','color':'blue','size':30}
-    font1 = {'family':'serif','color':'darkred','size':20}
-
-    plt.title('Time Series - East', fontdict = font)
-    plt.xlabel('Dates', fontdict = font1)
-    plt.ylabel('y - values (mm)', fontdict = font1)
-    plt.legend()
-
-    plt.show()
-
-    # ## PLOTTING THE SOLUTION
-    # fig, (ax0, ax1, ax2) = plt.subplots(3, 1, sharex=True)
-    # ax0.scatter(t, e, label='East')
-    # ax1.scatter(t, n, label='North')
-    # ax2.scatter(t, u, label='Up')
-
-    # font1 = {'family':'serif','color':'blue','size':30}
-    # font2 = {'family':'serif','color':'darkred','size':20}
-
-    # # ax0.set_ylim(-0.1, 0.7)
-    # # ax1.set_ylim(-0.5, 0.2)
-    # # ax2.set_ylim(-0.02, 0.02)
-
-    # ax0.set_title('Timeseries Plot', fontdict = font1)
-    # ax2.set_xlabel("Dates", fontdict = font2)
-
-    # ax0.set_ylabel("East (m)", fontdict = font2)
-    # ax1.set_ylabel("North (m)", fontdict = font2)
-    # ax2.set_ylabel("Up (m)", fontdict = font2)
-
-    # plt.show()
-
-
+    dx, vx, mse = fit(n, tn, PN_array, angular_freq, jump_list, SIGMA0)   
+    y_tel = compute_model(dx, tn, angular_freq, jump_list)                
+    uun, _ = residuals(n, y_tel)                                          
+    print('Ο Αριθμός των επαναλήψεων είναι: ', j)
+    print('Τα αποτελέσματα της συνόρθωσης είναι:')
     for i,x in enumerate(dx):
         print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+
+    # Timeseries analysis of Y - East axis:
+    k = 0
+    SIGMA0 = 0.001
+    mse=1
+    mset=1000
+    while abs(mse - mset) > 1.0e-6 and k < 10:
+        if k!=0:
+            mset = mse
+        dx, vx, mse = fit(e, te, PE_array, angular_freq, jump_list, SIGMA0)
+        y_tel = compute_model(dx, te, angular_freq, jump_list)
+        uue, _ = residuals(e, y_tel)
+        tres = te
+        e, te, PE_array = remove_outliers(e, te, PE_array, uue, math.sqrt(mse), SIGMA0)
+        SIGMA0=math.sqrt(mse)
+        k+=1
+    dx, vx, mse = fit(e, te, PE_array, angular_freq, jump_list, SIGMA0)
+    y_tel = compute_model(dx, te, angular_freq, jump_list)                     
+    uue, _ = residuals(e, y_tel)
+    print('Ο Αριθμός των επαναλήψεων είναι: ', k)
+    print('Τα αποτελέσματα της συνόρθωσης είναι:')
+    for i,x in enumerate(dx):
+        print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+
+    # Timeseries analysis of Z - Up axis:
+    counter = 0
+    SIGMA0 = 0.001
+    mse=1
+    mset=1000
+    while abs(mse - mset) > 1.0e-6 and counter < 10:
+        if counter!=0:
+            mset = mse
+        dx, vx, mse = fit(u, th, PU_array, angular_freq, jump_list, SIGMA0)
+        y_tel = compute_model(dx, th, angular_freq, jump_list)
+        uuu, _ = residuals(u, y_tel)
+        tres = th
+        u, th, PU_array = remove_outliers(u, th, PU_array, uuu, math.sqrt(mse), SIGMA0)
+        SIGMA0=math.sqrt(mse)
+        counter+=1
+    dx, vx, mse = fit(u, th, PU_array, angular_freq, jump_list, SIGMA0)
+    y_tel = compute_model(dx, th, angular_freq, jump_list)
+    uuu, _ = residuals(u, y_tel)
+    print('Ο Αριθμός των επαναλήψεων είναι: ', counter)
+    print('Τα αποτελέσματα της συνόρθωσης είναι:')
+    for i,x in enumerate(dx):
+        print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+
+    ## PLOTTING THE SOLUTION
+    fig, (ax0, ax1, ax2) = plt.subplots(3, 1)
+    ax0.scatter(te, e, s=1.5, label='East')
+    ax1.scatter(tn, n, s=1.5, label='North')
+    ax2.scatter(th, u, s=1.5, label='Up')
+
+    font1 = {'family':'serif','color':'blue','size':30}
+    font2 = {'family':'serif','color':'darkred','size':20}
+
+    # ax0.set_ylim(-0.1, 0.7)
+    # ax1.set_ylim(-0.5, 0.2)
+    # ax2.set_ylim(-0.02, 0.02)
+
+    ax0.set_title('Timeseries Plot', fontdict = font1)
+    ax2.set_xlabel("Dates", fontdict = font2)
+
+    ax0.set_ylabel("East (m)", fontdict = font2)
+    ax1.set_ylabel("North (m)", fontdict = font2)
+    ax2.set_ylabel("Up (m)", fontdict = font2)
+
+    plt.show()
+    
+    ## PLOTTING THE SOLUTION                                 
+    fig, (ax0, ax1, ax2) = plt.subplots(3, 1)
+    ax0.scatter(te, uue, s=1.5, label='East')
+    ax1.scatter(tn, uun, s=1.5, label='North')
+    ax2.scatter(th, uuu, s=1.5, label='Up')
+ 
+    font1 = {'family':'serif','color':'blue','size':30}
+    font2 = {'family':'serif','color':'darkred','size':20}
+ 
+    # ax0.set_ylim(-0.1, 0.7)
+    # ax1.set_ylim(-0.5, 0.2)
+    # ax2.set_ylim(-0.02, 0.02)
+ 
+    ax0.set_title('Timeseries Plot', fontdict = font1)
+    ax2.set_xlabel("Dates", fontdict = font2)
+ 
+    ax0.set_ylabel("East (m)", fontdict = font2)
+    ax1.set_ylabel("North (m)", fontdict = font2)
+    ax2.set_ylabel("Up (m)", fontdict = font2)
+ 
+    plt.show()
