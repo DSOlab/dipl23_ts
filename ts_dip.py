@@ -8,14 +8,14 @@ import statistics
 
 model_coef = [100, 0, -30, -11, 6, 36, 50, -100] #Coefficients of the equation being modeled y = a * x + b + c1 * math.sin(w1 * x) + d1 * math.cos(w1 * x) + c2 * math.sin(w2 * x) + d2 * math.cos(w2 * x)...
 timeframe = [datetime.datetime(2015,1,1), datetime.datetime(2020,1,1)]
-jump_list = [] #datetime.datetime(2017,1,1), datetime.datetime(2018,12,12)
+jump_list = []
 w = 2 * math.pi * 2 
 w2 = 2 * math.pi * 1 
 angular_freq = [w2, w]
 white_noise_parameters = [0, 1]
 SIGMA0 = 0.001
 EPSILON = 0.006694380 
-PATH = 'tuc2.cts'
+PATH = '041a.cts'
 
 ## PARSING CTS FILES
 def parse(PATH):
@@ -203,7 +203,6 @@ def fit(y, t, P_array , freq, jumps, SIGMA0): ## t = dates in datetime, y = pars
     #model = np.reshape(y, (len(y),1))
     model = y * np.sqrt(P_array)
     A = Design_Matrix(t, jumps, freq)
-    print(A.shape)
     AP = A * np.sqrt(P_array)[:, None]
     dx, sumres, _,  _ = np.linalg.lstsq(AP, model, rcond=None)
     dx = dx.flatten()
@@ -238,12 +237,28 @@ if __name__ == "__main__":
     sof, sol, soh = geterrors(coords)
     e, n, u = topocentric_conversion(x, y, z)
     na = n
-    ea = e    
+    ea = e
+    ua = u  
     ta, tn, te, th = t, t, t, t
 
     PN_array = weights_calc(sof, SIGMA0)
     PE_array = weights_calc(sol, SIGMA0)
     PU_array = weights_calc(soh, SIGMA0)
+
+    # dx, vx, mse = fit(n, tn, PN_array, angular_freq, jump_list, SIGMA0)
+    # E_tel = compute_model(dx, tn, angular_freq, jump_list)
+    # uun, _ = residuals(n, E_tel)
+    # n, tn, PN_array = remove_outliers(n, tn, PN_array, uun, math.sqrt(mse), SIGMA0)
+
+    # dx, vx, mse = fit(e, te, PE_array, angular_freq, jump_list, SIGMA0)
+    # E_tel = compute_model(dx, te, angular_freq, jump_list)
+    # uue, _ = residuals(e, E_tel)
+    # e, te, PE_array = remove_outliers(e, te, PE_array, uue, math.sqrt(mse), SIGMA0)
+
+    # dx, vx, mse = fit(u, th, PU_array, angular_freq, jump_list, SIGMA0)
+    # U_tel = compute_model(dx, th, angular_freq, jump_list)
+    # uuu, _ = residuals(u, U_tel)
+    # u, th, PU_array = remove_outliers(u, th, PU_array, uuu, math.sqrt(mse), SIGMA0)
 
     # Timeseries analysis of X - North axis:
     j = 0
@@ -261,12 +276,11 @@ if __name__ == "__main__":
         SIGMA0=math.sqrt(mse)
         j+=1
     dx, vx, mse = fit(n, tn, PN_array, angular_freq, jump_list, SIGMA0)   
-    y_tel = compute_model(dx, tn, angular_freq, jump_list)                
-    uun, _ = residuals(n, y_tel)                                          
-    print('Ο Αριθμός των επαναλήψεων είναι: ', j)
-    print('Τα αποτελέσματα της συνόρθωσης είναι:')
+    N_tel = compute_model(dx, tn, angular_freq, jump_list)                
+    uun, _ = residuals(n, N_tel)                                          
+    print('North Solutions:')
     for i,x in enumerate(dx):
-        print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+        print('{:+10.3f} +- {:10.3f}'.format(x*1000, math.sqrt(vx[i][i])*1000))
 
     # Timeseries analysis of Y - East axis:
     k = 0
@@ -283,13 +297,13 @@ if __name__ == "__main__":
         e, te, PE_array = remove_outliers(e, te, PE_array, uue, math.sqrt(mse), SIGMA0)
         SIGMA0=math.sqrt(mse)
         k+=1
+        print(len(e))
     dx, vx, mse = fit(e, te, PE_array, angular_freq, jump_list, SIGMA0)
-    y_tel = compute_model(dx, te, angular_freq, jump_list)                     
-    uue, _ = residuals(e, y_tel)
-    print('Ο Αριθμός των επαναλήψεων είναι: ', k)
-    print('Τα αποτελέσματα της συνόρθωσης είναι:')
+    E_tel = compute_model(dx, te, angular_freq, jump_list)                     
+    uue, _ = residuals(e, E_tel)
+    print('East Solutions:')
     for i,x in enumerate(dx):
-        print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+        print('{:+10.3f} +- {:10.3f}'.format(x*1000, math.sqrt(vx[i][i])*1000))
 
     # Timeseries analysis of Z - Up axis:
     counter = 0
@@ -306,29 +320,40 @@ if __name__ == "__main__":
         u, th, PU_array = remove_outliers(u, th, PU_array, uuu, math.sqrt(mse), SIGMA0)
         SIGMA0=math.sqrt(mse)
         counter+=1
+        print(len(u))
     dx, vx, mse = fit(u, th, PU_array, angular_freq, jump_list, SIGMA0)
-    y_tel = compute_model(dx, th, angular_freq, jump_list)
-    uuu, _ = residuals(u, y_tel)
-    print('Ο Αριθμός των επαναλήψεων είναι: ', counter)
-    print('Τα αποτελέσματα της συνόρθωσης είναι:')
+    U_tel = compute_model(dx, th, angular_freq, jump_list)
+    uuu, _ = residuals(u, U_tel)
+    print('Up Solutions:')
     for i,x in enumerate(dx):
-        print('{:+10.3f} +- {:10.6f}'.format(x*1000, math.sqrt(vx[i][i])))
+        print('{:+10.3f} +- {:10.3f}'.format(x*1000, math.sqrt(vx[i][i])*1000))
 
     ## PLOTTING THE SOLUTION
     fig, (ax0, ax1, ax2) = plt.subplots(3, 1)
-    ax0.scatter(te, e, s=1.5, label='East')
-    ax1.scatter(tn, n, s=1.5, label='North')
-    ax2.scatter(th, u, s=1.5, label='Up')
+    ax0.scatter(te, e, s=1.5, label='Solution - East')
+    ax0.plot(te, E_tel, label='Final Model - East', color='red')
+    ax1.scatter(tn, n, s=1.5, label='Solution - North')
+    ax1.plot(tn, N_tel, label='Final Model - North', color='red')
+    ax2.scatter(th, u, s=1.5, label='Solution - Up')
+    ax2.plot(th, U_tel, label='Final Model - Up', color='red')
+
+    # Sygkrisi outliers 
+    # ax0.scatter(t, ea, s=1.5, label='Outliers - East ', color='red')
+    # ax0.scatter(te, e, s=1.5, label='East', color='blue')
+    # ax1.scatter(t, na, s=1.5, label='Outliers - North', color='red')
+    # ax1.scatter(tn, n, s=1.5, label='North', color='blue')
+    # ax2.scatter(t, ua, s=1.5, label='Outliers - Up', color='red')
+    # ax2.scatter(th, u, s=1.5, label='Up', color='blue')
 
     font1 = {'family':'serif','color':'blue','size':30}
     font2 = {'family':'serif','color':'darkred','size':20}
 
-    # ax0.set_ylim(-0.1, 0.7)
-    # ax1.set_ylim(-0.5, 0.2)
-    # ax2.set_ylim(-0.02, 0.02)
-
-    ax0.set_title('Timeseries Plot', fontdict = font1)
+    ax0.set_title(f'Time Series Final Model Plot - {PATH[:4]}', fontdict = font1)
     ax2.set_xlabel("Dates", fontdict = font2)
+
+    ax0.legend()
+    ax1.legend()
+    ax2.legend()
 
     ax0.set_ylabel("East (m)", fontdict = font2)
     ax1.set_ylabel("North (m)", fontdict = font2)
@@ -336,20 +361,17 @@ if __name__ == "__main__":
 
     plt.show()
     
-    ## PLOTTING THE SOLUTION                                 
+    ## PLOTTING THE RESIDUALS                                 
     fig, (ax0, ax1, ax2) = plt.subplots(3, 1)
-    ax0.scatter(te, uue, s=1.5, label='East')
-    ax1.scatter(tn, uun, s=1.5, label='North')
-    ax2.scatter(th, uuu, s=1.5, label='Up')
- 
-    font1 = {'family':'serif','color':'blue','size':30}
-    font2 = {'family':'serif','color':'darkred','size':20}
+    ax0.scatter(te, uue, s=1.5, label='East (m)')
+    ax1.scatter(tn, uun, s=1.5, label='North (m)')
+    ax2.scatter(th, uuu, s=1.5, label='Up (m)')
  
     # ax0.set_ylim(-0.1, 0.7)
     # ax1.set_ylim(-0.5, 0.2)
     # ax2.set_ylim(-0.02, 0.02)
  
-    ax0.set_title('Timeseries Plot', fontdict = font1)
+    ax0.set_title(f'Residuals Plot - {PATH[:4]}', fontdict = font1)
     ax2.set_xlabel("Dates", fontdict = font2)
  
     ax0.set_ylabel("East (m)", fontdict = font2)
