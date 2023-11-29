@@ -6,7 +6,7 @@ from itertools import chain
 import sys
 import statistics
 
-model_coef = [100, 0, -30, -11, 6, 36, 50, -100] #Coefficients of the equation being modeled y = a * x + b + c1 * math.sin(w1 * x) + d1 * math.cos(w1 * x) + c2 * math.sin(w2 * x) + d2 * math.cos(w2 * x)...
+model_coef = [100, 0, -30, -11, 6, 36, 50, -100] #Coefficients of the equation being modeled y = a * x + b + c1 * math.sin(w1 * x) + d1 * math.cos(w1 * x) + c2 * math.sin(w2 * x) + d2 * math.cos(w2 * x)... + J1 + ... Jn
 timeframe = [datetime.datetime(2015,1,1), datetime.datetime(2020,1,1)]
 jump_list = []
 w = 2 * math.pi * 2 
