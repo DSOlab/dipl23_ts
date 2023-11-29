@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     plt.plot(dates, y, 'o', label = 'Original Data', markersize=1)
     plt.plot(dates, Final_Model, 'r', label = "Final Model")
- #   plt.plot(dates, Lin_Solution, 'y', label = "Linear Model")
+#   plt.plot(dates, Lin_Solution, 'y', label = "Linear Model")
 
     font = {'family':'serif','color':'blue','size':30}
     font1 = {'family':'serif','color':'darkred','size':20}
