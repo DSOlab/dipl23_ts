@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy
 import math
 
-# # Enter a Starting and a Finishing date from keyboard
+## Enter a Starting and a Finishing date from keyboard
 # start_str = input("Enter a Starting Date using (Year-Month-Day) - format: ")
 # end_str = input("Enter a Finishing Date using (Year-Month-Day) - format: ")
 
