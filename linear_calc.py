@@ -154,14 +154,14 @@ def Linear_sol(a, b, dates):
 
 if __name__ == "__main__":
     dates, y = parse_txt(PATH)
-    ##A = Design_Matrix(epochs2dtime(dates2epochs(dates)), jump_list, omega_list) #Datetime -> Epochs -> dtime
+    #A = Design_Matrix(epochs2dtime(dates2epochs(dates)), jump_list, omega_list) #Datetime -> Epochs -> dtime
     A = Design_Matrix(dates, jump_list, omega_list) #Datetime -> Epochs -> dtime
     dx = Least_Squares(A, y)
     Final_Model = LS_solutions(Least_Squares(A, y), dates, omega_list, jump_list) 
 #    a, b = Linear_Regression(epochs2dtime(dates2epochs(dates)), y)
 #    Lin_Solution = Linear_sol(a, b, epochs2dtime(dates2epochs(dates)))
     print(dx)
-# Plotting the original data imported from the text file (created by timeseriescodedip.py) + the created model
+##  Plotting the original data imported from the text file (created by timeseriescodedip.py) + the created model
 
     plt.plot(dates, y, 'o', label = 'Original Data', markersize=1)
     plt.plot(dates, Final_Model, 'r', label = "Final Model")
